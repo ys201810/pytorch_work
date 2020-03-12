@@ -10,7 +10,8 @@ def main():
     color_mean = (0.485, 0.456, 0.406)
     color_std = (0.229, 0.224, 0.225)
 
-    data_root_path = os.path.join('')
+    data_root_path = os.path.join('/Users', 'shirai1', 'work', 'pytorch_work', 'pytorch_advanced',
+                                  '3_semantic_segmentation', 'data', 'VOCdevkit', 'VOC2012')
     train_img_list, train_anno_list, val_img_list, val_anno_list = make_datapath_list(data_root_path)
     train_dataset = VOCDataset(train_img_list, train_anno_list, phase='train',
                                transform=DataTransform(input_size=475, color_mean=color_mean, color_std=color_std))
@@ -25,9 +26,9 @@ def main():
     # 動作確認
     batch_iterator = iter(dataloaders_dict['val'])
     images, anno_clss_images = next(batch_iterator)
-    print(images.size, anno_clss_images.size)
+    print(images.shape, anno_clss_images.shape)
 
-    
+
 
 if __name__ == '__main__':
     main()
