@@ -1,5 +1,7 @@
 # coding=utf-8
+import torch
 from torch import nn
+import torch.nn.functional as F
 
 
 class Conv2DBatchNormRelu(nn.Module):
@@ -117,6 +119,48 @@ class ResidualBlockPSP(nn.Sequential):
                 name="block" + str(i + 2),
                 module=BottleNeckIdentifyPSP(out_channels, mid_channels, stride, dilation)
             )
+
+
+class PyramidPooling(nn.Module):
+    def __init__(self, in_channels, pool_sizes, height, width):
+        super(PyramidPooling, self).__init__()
+
+        self.height = height
+        self.width = width
+
+        out_channels = int(in_channels / len(pool_sizes))
+
+        self.avpool1 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[0])
+        self.cbr1 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size=1, stride=1, padding=0,
+                                        dilation=1, bias=False)
+
+        self.avpool2 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[1])
+        self.cbr2 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size=1, stride=1, padding=0,
+                                        dilation=1, bias=False)
+
+        self.avpool3 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[2])
+        self.cbr3 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size=1, stride=1, padding=0,
+                                        dilation=1, bias=False)
+
+        self.avpool4 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[3])
+        self.cbr4 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size=1, stride=1, padding=0,
+                                        dilation=1, bias=False)
+
+    def forward(self, x):
+        out1 = self.cbr1(self.avpool1(x))
+        out1 = F.interpolate(out1, size=(self.height, self.width), mode='bilinear', aligh_corners=True)
+
+        out2 = self.cbr2(self.avpool2(x))
+        out2 = F.interpolate(out2, size=(self.height, self.width), mode='bilinear', aligh_corners=True)
+
+        out3 = self.cbr3(self.avpool3(x))
+        out3 = F.interpolate(out3, size=(self.height, self.width), mode='bilinear', aligh_corners=True)
+
+        out4 = self.cbr4(self.avpool4(x))
+        out4 = F.interpolate(out4, size=(self.height, self.width), mode='bilinear', aligh_corners=True)
+
+        output = torch.cat([x, out1, out2, out3, out4], dim=1)
+        return output
 
 
 class PSPNet(nn.Module):
