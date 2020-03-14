@@ -41,24 +41,24 @@ class FeatureMapConvolution(nn.Module):
         # conv1
         conv1_conf = [3, 64, 3, 2, 1, 1, False]
         in_channels, out_channels, kernel_size, stride, padding, dilation, bias = conv1_conf
-        self.cbnr1 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size, stride, padding, dilation, bias)
+        self.cbnr_1 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size, stride, padding, dilation, bias)
 
         # conv2
         conv2_conf = [64, 64, 3, 1, 1, 1, False]
         in_channels, out_channels, kernel_size, stride, padding, dilation, bias = conv2_conf
-        self.cbnr2 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size, stride, padding, dilation, bias)
+        self.cbnr_2 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size, stride, padding, dilation, bias)
 
         # conv3
         conv3_conf = [64, 128, 3, 1, 1, 1, False]
         in_channels, out_channels, kernel_size, stride, padding, dilation, bias = conv3_conf
-        self.cbnr3 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size, stride, padding, dilation, bias)
+        self.cbnr_3 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size, stride, padding, dilation, bias)
 
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x):
-        x = self.cbnr1(x)
-        x = self.cbnr2(x)
-        x = self.cbnr3(x)
+        x = self.cbnr_1(x)
+        x = self.cbnr_2(x)
+        x = self.cbnr_3(x)
         outputs = self.maxpool(x)
 
         return outputs
@@ -69,11 +69,11 @@ class BottleNeckPSP(nn.Module):
     def __init__(self, in_channels, mid_channels, out_channels, stride, dilation):
         super(BottleNeckPSP, self).__init__()
 
-        self.cbr1 = Conv2DBatchNormRelu(in_channels, mid_channels, kernel_size=1, stride=1, padding=0,
+        self.cbr_1 = Conv2DBatchNormRelu(in_channels, mid_channels, kernel_size=1, stride=1, padding=0,
                                         dilation=1, bias=False)
-        self.cbr2 = Conv2DBatchNormRelu(mid_channels, mid_channels, kernel_size=3, stride=stride, padding=dilation,
+        self.cbr_2 = Conv2DBatchNormRelu(mid_channels, mid_channels, kernel_size=3, stride=stride, padding=dilation,
                                         dilation=dilation, bias=False)
-        self.cb3 = Conv2DBatchNorm(mid_channels, out_channels, kernel_size=1, stride=1, padding=0,
+        self.cb_3 = Conv2DBatchNorm(mid_channels, out_channels, kernel_size=1, stride=1, padding=0,
                                    dilation=1, bias=False)
 
         self.cb_residual = Conv2DBatchNorm(in_channels, out_channels, kernel_size=1, stride=stride, padding=0,
@@ -81,7 +81,7 @@ class BottleNeckPSP(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        conv = self.cb3(self.cbr2(self.cbr1(x)))
+        conv = self.cb_3(self.cbr_2(self.cbr_1(x)))
         residual = self.cb_residual(x)
         return self.relu(conv + residual)
 
@@ -91,15 +91,15 @@ class BottleNeckIdentifyPSP(nn.Module):
     def __init__(self, in_channels, mid_channels, stride, dilation):
         super(BottleNeckIdentifyPSP, self).__init__()
 
-        self.cbr1 = Conv2DBatchNormRelu(in_channels, mid_channels, kernel_size=1, stride=1, padding=0, dilation=1,
+        self.cbr_1 = Conv2DBatchNormRelu(in_channels, mid_channels, kernel_size=1, stride=1, padding=0, dilation=1,
                                         bias=False)
-        self.cbr2 = Conv2DBatchNormRelu(mid_channels, mid_channels, kernel_size=3, stride=1, padding=dilation,
+        self.cbr_2 = Conv2DBatchNormRelu(mid_channels, mid_channels, kernel_size=3, stride=1, padding=dilation,
                                         dilation=dilation, bias=False)
-        self.cb3 = Conv2DBatchNorm(mid_channels, in_channels, kernel_size=1, stride=1, padding=0, dilation=1, bias=False)
+        self.cb_3 = Conv2DBatchNorm(mid_channels, in_channels, kernel_size=1, stride=1, padding=0, dilation=1, bias=False)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        conv = self.cb3(self.cbr2(self.cbr1(x)))
+        conv = self.cb_3(self.cbr_2(self.cbr_1(x)))
         residual = x
         return self.relu(conv + residual)
 
@@ -130,33 +130,33 @@ class PyramidPooling(nn.Module):
 
         out_channels = int(in_channels / len(pool_sizes))
 
-        self.avpool1 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[0])
-        self.cbr1 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size=1, stride=1, padding=0,
+        self.avpool_1 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[0])
+        self.cbr_1 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size=1, stride=1, padding=0,
                                         dilation=1, bias=False)
 
-        self.avpool2 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[1])
-        self.cbr2 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size=1, stride=1, padding=0,
+        self.avpool_2 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[1])
+        self.cbr_2 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size=1, stride=1, padding=0,
                                         dilation=1, bias=False)
 
-        self.avpool3 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[2])
-        self.cbr3 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size=1, stride=1, padding=0,
+        self.avpool_3 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[2])
+        self.cbr_3 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size=1, stride=1, padding=0,
                                         dilation=1, bias=False)
 
-        self.avpool4 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[3])
-        self.cbr4 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size=1, stride=1, padding=0,
+        self.avpool_4 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[3])
+        self.cbr_4 = Conv2DBatchNormRelu(in_channels, out_channels, kernel_size=1, stride=1, padding=0,
                                         dilation=1, bias=False)
 
     def forward(self, x):
-        out1 = self.cbr1(self.avpool1(x))
+        out1 = self.cbr_1(self.avpool_1(x))
         out1 = F.interpolate(out1, size=(self.height, self.width), mode='bilinear', align_corners=True)
 
-        out2 = self.cbr2(self.avpool2(x))
+        out2 = self.cbr_2(self.avpool_2(x))
         out2 = F.interpolate(out2, size=(self.height, self.width), mode='bilinear', align_corners=True)
 
-        out3 = self.cbr3(self.avpool3(x))
+        out3 = self.cbr_3(self.avpool_3(x))
         out3 = F.interpolate(out3, size=(self.height, self.width), mode='bilinear', align_corners=True)
 
-        out4 = self.cbr4(self.avpool4(x))
+        out4 = self.cbr_4(self.avpool_4(x))
         out4 = F.interpolate(out4, size=(self.height, self.width), mode='bilinear', align_corners=True)
 
         output = torch.cat([x, out1, out2, out3, out4], dim=1)
@@ -216,16 +216,16 @@ class PSPNet(nn.Module):
 
         self.feature_conv = FeatureMapConvolution()
 
-        self.feature_res1 = ResidualBlockPSP(n_blocks=block_config[0], in_channels=128, mid_channels=64,
+        self.feature_res_1 = ResidualBlockPSP(n_blocks=block_config[0], in_channels=128, mid_channels=64,
                                              out_channels=256, stride=1, dilation=1)
 
-        self.feature_res2 = ResidualBlockPSP(n_blocks=block_config[1], in_channels=256, mid_channels=128,
+        self.feature_res_2 = ResidualBlockPSP(n_blocks=block_config[1], in_channels=256, mid_channels=128,
                                              out_channels=512, stride=2, dilation=1)
 
-        self.feature_dilated_res1 = ResidualBlockPSP(n_blocks=block_config[2], in_channels=512, mid_channels=256,
+        self.feature_dilated_res_1 = ResidualBlockPSP(n_blocks=block_config[2], in_channels=512, mid_channels=256,
                                                      out_channels=1024, stride=1, dilation=2)
 
-        self.feature_dilated_res2 = ResidualBlockPSP(n_blocks=block_config[3], in_channels=1024, mid_channels=512,
+        self.feature_dilated_res_2 = ResidualBlockPSP(n_blocks=block_config[3], in_channels=1024, mid_channels=512,
                                                      out_channels=2048, stride=1, dilation=4)
 
         self.pyramid_pooling = PyramidPooling(in_channels=2048, pool_sizes=[6, 3, 2, 1],
@@ -237,13 +237,13 @@ class PSPNet(nn.Module):
 
     def forward(self, x):
         x = self.feature_conv(x)
-        x = self.feature_res1(x)
-        x = self.feature_res2(x)
-        x = self.feature_dilated_res1(x)
+        x = self.feature_res_1(x)
+        x = self.feature_res_2(x)
+        x = self.feature_dilated_res_1(x)
 
         output_aux = self.aux(x)
 
-        x = self.feature_dilated_res2(x)
+        x = self.feature_dilated_res_2(x)
         x = self.pyramid_pooling(x)
         output = self.decode_feature(x)
 

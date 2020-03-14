@@ -16,8 +16,9 @@ def main():
     color_mean = (0.485, 0.456, 0.406)
     color_std = (0.229, 0.224, 0.225)
 
-    data_root_path = os.path.join('/Users', 'shirai1', 'work', 'pytorch_work', 'pytorch_advanced',
-                                  '3_semantic_segmentation', 'data', 'VOCdevkit', 'VOC2012')
+    # data_root_path = os.path.join('/Users', 'shirai1', 'work', 'pytorch_work', 'pytorch_advanced',
+    #                               '3_semantic_segmentation', 'data', 'VOCdevkit', 'VOC2012')
+    data_root_path = os.path.join('/home', 'yusuke', 'work', 'data', 'VOCdevkit', 'VOC2012')
     train_img_list, train_anno_list, val_img_list, val_anno_list = make_datapath_list(data_root_path)
     train_dataset = VOCDataset(train_img_list, train_anno_list, phase='train',
                                transform=DataTransform(input_size=475, color_mean=color_mean, color_std=color_std))
@@ -50,14 +51,14 @@ def main():
 
     # optimizerをネットワークの層の名前ごとにlrを変えて定義
     optimizer = optim.SGD([
-        {'params': net.feature_conv.prameters(), 'lr': 1e-3},
-        {'params': net.feature_res1.prameters(), 'lr': 1e-3},
-        {'params': net.feature_res2.prameters(), 'lr': 1e-3},
-        {'params': net.feature_dilated_res1.prameters(), 'lr': 1e-3},
-        {'params': net.feature_dilated_res2.prameters(), 'lr': 1e-3},
-        {'params': net.feature_pyramid_pooling.prameters(), 'lr': 1e-3},
-        {'params': net.feature_decode_feature.prameters(), 'lr': 1e-2},
-        {'params': net.aux.prameters(), 'lr': 1e-2},
+        {'params': net.feature_conv.parameters(), 'lr': 1e-3},
+        {'params': net.feature_res_1.parameters(), 'lr': 1e-3},
+        {'params': net.feature_res_2.parameters(), 'lr': 1e-3},
+        {'params': net.feature_dilated_res_1.parameters(), 'lr': 1e-3},
+        {'params': net.feature_dilated_res_2.parameters(), 'lr': 1e-3},
+        {'params': net.pyramid_pooling.parameters(), 'lr': 1e-3},
+        {'params': net.decode_feature.parameters(), 'lr': 1e-2},
+        {'params': net.aux.parameters(), 'lr': 1e-2},
     ], momentum=0.9, weight_decay=0.0001)
 
     # スケジューラーの設定
@@ -67,6 +68,7 @@ def main():
 
     scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_epoch)
 
+    
 
 
 if __name__ == '__main__':
