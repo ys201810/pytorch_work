@@ -1,8 +1,14 @@
 # coding=utf-8
 import os
+import math
+import torch
+from torch import nn
 from torch.utils import data
 from datasets import VOCDataset, make_datapath_list
 from preprocess import DataTransform
+from network import PSPNet
+from loss import PSPLoss
+from torch import optim
 
 
 def main():
@@ -23,10 +29,43 @@ def main():
 
     dataloaders_dict = {'train': train_dataloader, 'val': val_dataloader}
 
-    # 動作確認
-    batch_iterator = iter(dataloaders_dict['val'])
-    images, anno_clss_images = next(batch_iterator)
-    print(images.shape, anno_clss_images.shape)
+    net = PSPNet(n_classes=150)
+    state_dict = net.load_state_dict(torch.load('./weights/pspnet50_ADE20K.pth'))
+
+    n_classes = 21
+    net.decode_feature.classification = nn.Conv2d(in_channels=512, out_channels=n_classes, kernel_size=1, stride=1,
+                                                  padding=0)
+    net.aux.classification = nn.Conv2d(in_channels=256, out_channels=n_classes, kernel_size=1, stride=1, padding=0)
+
+    def weights_init(m):
+        if isinstance(m, nn.Conv2d):
+            nn.init.xavier_normal_(m.weight.data)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0.0)
+
+    net.decode_feature.classification.apply(weights_init)
+    net.aux.classification.apply(weights_init)
+
+    print('ネットワークの設定完了。学習済みの重みのロード終了')
+
+    # optimizerをネットワークの層の名前ごとにlrを変えて定義
+    optimizer = optim.SGD([
+        {'params': net.feature_conv.prameters(), 'lr': 1e-3},
+        {'params': net.feature_res1.prameters(), 'lr': 1e-3},
+        {'params': net.feature_res2.prameters(), 'lr': 1e-3},
+        {'params': net.feature_dilated_res1.prameters(), 'lr': 1e-3},
+        {'params': net.feature_dilated_res2.prameters(), 'lr': 1e-3},
+        {'params': net.feature_pyramid_pooling.prameters(), 'lr': 1e-3},
+        {'params': net.feature_decode_feature.prameters(), 'lr': 1e-2},
+        {'params': net.aux.prameters(), 'lr': 1e-2},
+    ], momentum=0.9, weight_decay=0.0001)
+
+    # スケジューラーの設定
+    def lambda_epoch(epoch):
+        max_epoch = 30
+        return math.pow((1 - epoch / max_epoch), 0.9)
+
+    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_epoch)
 
 
 
