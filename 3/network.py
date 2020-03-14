@@ -67,7 +67,7 @@ class FeatureMapConvolution(nn.Module):
 class BottleNeckPSP(nn.Module):
     """ residualだが、convを挟んでresidulaをするかしないかがIdentifyとの違い """
     def __init__(self, in_channels, mid_channels, out_channels, stride, dilation):
-        super(BottleNeckPSP).__init__()
+        super(BottleNeckPSP, self).__init__()
 
         self.cbr1 = Conv2DBatchNormRelu(in_channels, mid_channels, kernel_size=1, stride=1, padding=0,
                                         dilation=1, bias=False)
@@ -89,7 +89,7 @@ class BottleNeckPSP(nn.Module):
 class BottleNeckIdentifyPSP(nn.Module):
     """ 入力と同じサイズの出力。 出力はresidualで特徴抽出したもの + 入力 """
     def __init__(self, in_channels, mid_channels, stride, dilation):
-        super(BottleNeckIdentifyPSP).__init__()
+        super(BottleNeckIdentifyPSP, self).__init__()
 
         self.cbr1 = Conv2DBatchNormRelu(in_channels, mid_channels, kernel_size=1, stride=1, padding=0, dilation=1,
                                         bias=False)
@@ -148,18 +148,61 @@ class PyramidPooling(nn.Module):
 
     def forward(self, x):
         out1 = self.cbr1(self.avpool1(x))
-        out1 = F.interpolate(out1, size=(self.height, self.width), mode='bilinear', aligh_corners=True)
+        out1 = F.interpolate(out1, size=(self.height, self.width), mode='bilinear', align_corners=True)
 
         out2 = self.cbr2(self.avpool2(x))
-        out2 = F.interpolate(out2, size=(self.height, self.width), mode='bilinear', aligh_corners=True)
+        out2 = F.interpolate(out2, size=(self.height, self.width), mode='bilinear', align_corners=True)
 
         out3 = self.cbr3(self.avpool3(x))
-        out3 = F.interpolate(out3, size=(self.height, self.width), mode='bilinear', aligh_corners=True)
+        out3 = F.interpolate(out3, size=(self.height, self.width), mode='bilinear', align_corners=True)
 
         out4 = self.cbr4(self.avpool4(x))
-        out4 = F.interpolate(out4, size=(self.height, self.width), mode='bilinear', aligh_corners=True)
+        out4 = F.interpolate(out4, size=(self.height, self.width), mode='bilinear', align_corners=True)
 
         output = torch.cat([x, out1, out2, out3, out4], dim=1)
+        return output
+
+
+class DecodePSPFeature(nn.Module):
+    def __init__(self, height, width, n_classes):
+        super(DecodePSPFeature, self).__init__()
+
+        self.height = height
+        self.width = width
+
+        self.cbr = Conv2DBatchNormRelu(in_channels=4096, out_channels=512, kernel_size=3, stride=1, padding=1,
+                                       dilation=1, bias=False)
+        self.dropout = nn.Dropout2d(p=0.1)
+        self.classification = nn.Conv2d(in_channels=512, out_channels=n_classes, kernel_size=1, stride=1, padding=0)
+
+    def forward(self, x):
+        x = self.cbr(x)
+        x = self.dropout(x)
+        x = self.classification(x)
+        output = F.interpolate(x, size=(self.height, self.width), mode='bilinear', align_corners=True)
+
+        return output
+
+
+class AuxiliaryPSPlayers(nn.Module):
+    def __init__(self, in_channels, height, width, n_classes):
+        super(AuxiliaryPSPlayers, self).__init__()
+
+        self.height = height
+        self.width = width
+
+        self.cbr = Conv2DBatchNormRelu(in_channels=in_channels, out_channels=256, kernel_size=3, stride=1, padding=1,
+                                       dilation=1, bias=False)
+        self.dropout = nn.Dropout2d(p=0.1)
+        # pointwise convolutionでout_class分の出力に変換。
+        self.classification = nn.Conv2d(in_channels=256, out_channels=n_classes, kernel_size=1, stride=1, padding=0)
+
+    def forward(self, x):
+        x = self.cbr(x)
+        x = self.dropout(x)
+        x = self.classification(x)
+        output = F.interpolate(x, size=(self.height, self.width), mode='bilinear', align_corners=True)
+
         return output
 
 
@@ -184,6 +227,37 @@ class PSPNet(nn.Module):
 
         self.feature_dilated_res2 = ResidualBlockPSP(n_blocks=block_config[3], in_channels=1024, mid_channels=512,
                                                      out_channels=2048, stride=1, dilation=4)
+
+        self.pyramid_pooling = PyramidPooling(in_channels=2048, pool_sizes=[6, 3, 2, 1],
+                                              height=img_size_8, width=img_size_8)
+
+        self.decode_feature = DecodePSPFeature(height=img_size, width=img_size, n_classes=n_classes)
+
+        self.aux = AuxiliaryPSPlayers(in_channels=1024, height=img_size, width=img_size, n_classes=n_classes)
+
+    def forward(self, x):
+        x = self.feature_conv(x)
+        x = self.feature_res1(x)
+        x = self.feature_res2(x)
+        x = self.feature_dilated_res1(x)
+
+        output_aux = self.aux(x)
+
+        x = self.feature_dilated_res2(x)
+        x = self.pyramid_pooling(x)
+        output = self.decode_feature(x)
+
+        return output, output_aux
+
+
+def main():
+    net = PSPNet(n_classes=21)
+    print(net)
+
+    batch_size = 2
+    dummy_data = torch.rand(batch_size, 3, 475, 475)
+    outputs = net(dummy_data)
+    print(outputs)
 
 
 if __name__ == '__main__':
