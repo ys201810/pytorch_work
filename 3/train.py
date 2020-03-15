@@ -1,7 +1,9 @@
 # coding=utf-8
 import os
+import time
 import math
 import torch
+import pandas as pd
 from torch import nn
 from torch.utils import data
 from datasets import VOCDataset, make_datapath_list
@@ -11,8 +13,88 @@ from loss import PSPLoss
 from torch import optim
 
 
+def train_model(net, dataloaders_dict, criterion, scheduler, optimizer, num_epochs):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print('使用デバイス:{}'.format(device))
+
+    net.to(device)
+    torch.backends.cudnn.benchmark = True  # ネットワークの学習がある程度固定なら、これをTrueに
+
+    num_train_imgs = len(dataloaders_dict['train'].dataset)
+    num_val_imgs = len(dataloaders_dict['val'].dataset)
+    batch_size = dataloaders_dict['train'].batch_size
+
+    iteration = 1
+    logs = []
+
+    batch_multiplier = 3
+
+    for epoch in range(num_epochs):
+        t_epoch_start = time.time()
+        t_iter_start = time.time()
+        epoch_train_loss, epoch_val_loss = 0.0, 0.0
+
+        print('Epoch {}/{}'.format(epoch + 1), num_epochs)
+
+        for phase in ['train', 'val']:
+            if phase == 'train':
+                net.train()  # モデルを学習モード[パラメータの更新有り]にセット
+                scheduler.step()  # schedulerの更新
+                optimizer.zero_grad()  # 1回前のiterationで学習した勾配のリセット
+                print('[train]')
+            else:
+                if (epoch + 1) / 5 == 0:  # evalは5epochに1回
+                    net.eval()  # モデルを検証モード[パラメータの更新無し]にセット
+                    print('[val]')
+                else:
+                    continue
+
+            count = 0
+            for images, anno_class_images in dataloaders_dict[phase]:
+                if images.size()[0] == 1:  # バッチサイズが1だとBatchNormでエラーになるのでcontinueする
+                    continue
+
+                images, anno_class_images = images.to(device), anno_class_images.to(device)
+
+                if phase == 'train' and count == 0:
+                    optimizer.step()
+                    optimizer.zero_grad()
+                    count = batch_multiplier
+
+                with torch.set_grad_enabled(phase == 'train'):
+                    outputs = net(images)
+                    loss = criterion(outputs, anno_class_images.long()) / batch_multiplier
+
+                    if phase == 'train':
+                        loss.backword()
+                        count -= 1
+
+                        if iteration % 10 == 0:
+                            t_iter_finish = time.time()
+                            duration = t_iter_finish - t_iter_start
+                            print('イテレーション {} || Loss:{} || 10iter:{} sec.'
+                                  .format(iteration, loss.item() / batch_size * batch_multiplier, duration))
+                            t_iter_start = time.time()
+                    else:
+                        epoch_val_loss += loss.item() * batch_multiplier
+
+        t_epoch_finish = time.time()
+        print('epoch {} || Epoch_TRAIN_Loss:{} || Epoch_VAL_Loss:{}'.format(
+            epoch + 1, epoch_train_loss / num_train_imgs, epoch_val_loss / num_val_imgs
+        ))
+        print('timer: {} sec'.format(t_epoch_finish - t_epoch_start))
+        t_epoch_start = time.time()
+
+        log_epoch = {'epoch': epoch+1, 'train_loss': epoch_train_loss / num_train_imgs,
+                     'val_loss': epoch_val_loss / num_val_imgs}
+        logs.append(log_epoch)
+        df = pd.DataFrame(logs)
+        df.to_csv("log_output.csv")
+
+        torch.save(net.state_dict(), 'weghts/pspnet50_' + str(epoch + 1) + '.pth')
+
 def main():
-    batch_size = 8
+    batch_size = 4
     color_mean = (0.485, 0.456, 0.406)
     color_std = (0.229, 0.224, 0.225)
 
@@ -68,8 +150,11 @@ def main():
 
     scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_epoch)
 
-    
+    criterion = PSPLoss(aux_weight=0.4)
 
+    epochs = 30
+
+    train_model(net, dataloaders_dict, criterion, scheduler, optimizer, num_epochs=epochs)
 
 if __name__ == '__main__':
     main()
