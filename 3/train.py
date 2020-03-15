@@ -34,7 +34,7 @@ def train_model(net, dataloaders_dict, criterion, scheduler, optimizer, num_epoc
         t_iter_start = time.time()
         epoch_train_loss, epoch_val_loss = 0.0, 0.0
 
-        print('Epoch {}/{}'.format(epoch + 1), num_epochs)
+        print('Epoch {}/{}'.format((epoch + 1), num_epochs))
 
         for phase in ['train', 'val']:
             if phase == 'train':
@@ -66,7 +66,7 @@ def train_model(net, dataloaders_dict, criterion, scheduler, optimizer, num_epoc
                     loss = criterion(outputs, anno_class_images.long()) / batch_multiplier
 
                     if phase == 'train':
-                        loss.backword()
+                        loss.backward()
                         count -= 1
 
                         if iteration % 10 == 0:
@@ -75,6 +75,8 @@ def train_model(net, dataloaders_dict, criterion, scheduler, optimizer, num_epoc
                             print('イテレーション {} || Loss:{} || 10iter:{} sec.'
                                   .format(iteration, loss.item() / batch_size * batch_multiplier, duration))
                             t_iter_start = time.time()
+                        epoch_train_loss += loss.item() * batch_multiplier
+                        iteration += 1
                     else:
                         epoch_val_loss += loss.item() * batch_multiplier
 
