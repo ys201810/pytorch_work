@@ -72,7 +72,7 @@ def train_model(net, dataloaders_dict, criterion, scheduler, optimizer, num_epoc
                         if iteration % 10 == 0:
                             t_iter_finish = time.time()
                             duration = t_iter_finish - t_iter_start
-                            print('イテレーション {} || Loss:{} || 10iter:{} sec.'
+                            print('イテレーション {} || Loss:{} || 10 iter:{} sec.'
                                   .format(iteration, loss.item() / batch_size * batch_multiplier, duration))
                             t_iter_start = time.time()
                         epoch_train_loss += loss.item() * batch_multiplier
