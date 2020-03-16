@@ -93,7 +93,7 @@ def train_model(net, dataloaders_dict, criterion, scheduler, optimizer, num_epoc
         df = pd.DataFrame(logs)
         df.to_csv("log_output.csv")
 
-        torch.save(net.state_dict(), 'weghts/pspnet50_' + str(epoch + 1) + '.pth')
+        torch.save(net.state_dict(), 'weights/pspnet50_' + str(epoch + 1) + '.pth')
 
 def main():
     batch_size = 4
@@ -115,7 +115,7 @@ def main():
     dataloaders_dict = {'train': train_dataloader, 'val': val_dataloader}
 
     net = PSPNet(n_classes=150)
-    state_dict = net.load_state_dict(torch.load('./weights/pspnet50_ADE20K.pth'))
+    net.load_state_dict(torch.load('./weights/pspnet50_ADE20K.pth'))
 
     n_classes = 21
     net.decode_feature.classification = nn.Conv2d(in_channels=512, out_channels=n_classes, kernel_size=1, stride=1,

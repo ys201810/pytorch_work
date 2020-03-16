@@ -10,7 +10,8 @@ from network import PSPNet
 
 
 def main():
-    data_root_path = os.path.join('/home', 'yusuke', 'work', 'data', 'VOCdevkit', 'VOC2012')
+    data_root_path = '/Users/shirai1/work/pytorch_work/pytorch_advanced/3_semantic_segmentation/data/VOCdevkit/VOC2012'
+    # data_root_path = os.path.join('/home', 'yusuke', 'work', 'data', 'VOCdevkit', 'VOC2012')
     train_img_list, train_anno_list, val_img_list, val_anno_list = make_datapath_list(data_root_path)
 
     net = PSPNet(n_classes=21)
