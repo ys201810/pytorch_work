@@ -24,7 +24,10 @@ def make_tsv_file(data_path, kind):
                 with open(text_file, 'r', encoding='utf-8') as inf:
                     text = inf.readline()
                     text = text.replace('\t', ' ')  # tsvにしたいので先にタブを半角スペースに変換。
-                    text = '\t'.join([text, '1', '\n'])
+                    if text_file.find('pos') > 0:
+                        text = '\t'.join([text, '1', '\n'])
+                    else:
+                        text = '\t'.join([text, '0', '\n'])
                     outf.write(text)
 
 
@@ -53,9 +56,9 @@ def tokenizer_with_preprocessing(text):
 def main():
     data_path = os.path.join('/Users', 'shirai1', 'work', 'pytorch_work', 'pytorch_advanced',
                              '7_nlp_sentiment_transformer', 'data', 'aclImdb')
-    if not os.path.exists(os.path.join(data_path, 'IMDb_train.tsv')):
+    if os.path.exists(os.path.join(data_path, 'IMDb_train.tsv')):
         make_tsv_file(data_path, 'train')
-    if not os.path.exists(os.path.join(data_path, 'IMDb_test.tsv')):
+    if os.path.exists(os.path.join(data_path, 'IMDb_test.tsv')):
         make_tsv_file(data_path, 'test')
 
     print(tokenizer_with_preprocessing('I like cats.'))
