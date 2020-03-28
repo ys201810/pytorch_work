@@ -6,8 +6,7 @@ from torchtext.vocab import Vectors
 from preprocesser import tokenizer_with_preprocessing
 
 
-def main():
-    max_length = 256
+def get_IMDb_Dataloader_and_text(max_length=256, batch_size=24):
     TEXT = torchtext.data.Field(sequential=True,  # データの長さが可変ならTrue
                                 tokenize=tokenizer_with_preprocessing,  # 前処理用の関数
                                 use_vocab=True,  # ボキャブラリーを作成するか
@@ -25,34 +24,32 @@ def main():
         fields=[('Text', TEXT), ('Label', LABEL)]
     )
 
-    print('学習・検証用データの長さ:{}'.format(len(train_val_ds)))
-    print('学習・検証用データの例:{}'.format(vars(train_val_ds[0])))
+    # print('学習・検証用データの長さ:{}'.format(len(train_val_ds)))
+    # print('学習・検証用データの例:{}'.format(vars(train_val_ds[0])))
 
     train_ds, val_ds = train_val_ds.split(split_ratio=0.8, random_state=random.seed(1234))
-    print('学習用データの長さ:{}'.format(len(train_ds)))
-    print('検証用データの長さ:{}'.format(len(val_ds)))
-    print('学習用データの例:{}'.format(vars(train_ds[0])))
+    # print('学習用データの長さ:{}'.format(len(train_ds)))
+    # print('検証用データの長さ:{}'.format(len(val_ds)))
+    # print('学習用データの例:{}'.format(vars(train_ds[0])))
 
     english_fasttext_vectors = Vectors(name=os.path.join(data_path, 'wiki-news-300d-1M.vec'))
 
-    print('1単語の次元数:{}'.format(english_fasttext_vectors.dim))
-    print('単語数:{}'.format(len(english_fasttext_vectors.itos)))
+    # print('1単語の次元数:{}'.format(english_fasttext_vectors.dim))
+    # print('単語数:{}'.format(len(english_fasttext_vectors.itos)))
 
     TEXT.build_vocab(train_ds, vectors=english_fasttext_vectors, min_freq=10)
 
-    print(TEXT.vocab.vectors.shape)
-    print(TEXT.vocab.vectors)
-    print(TEXT.vocab.stoi)
+    # print(TEXT.vocab.vectors.shape)
+    # print(TEXT.vocab.vectors)
+    # print(TEXT.vocab.stoi)
 
-    train_dl = torchtext.data.Iterator(train_ds, batch_size=24, train=True)
-    val_dl = torchtext.data.Iterator(val_ds, batch_size=24, train=False, sort=False)
-    test_dl = torchtext.data.Iterator(test_ds, batch_size=24, sort=False)
+    train_dl = torchtext.data.Iterator(train_ds, batch_size=batch_size, train=True)
+    val_dl = torchtext.data.Iterator(val_ds, batch_size=batch_size, train=False, sort=False)
+    test_dl = torchtext.data.Iterator(test_ds, batch_size=batch_size, sort=False)
 
     # 動作確認
-    batch = next(iter(val_dl))
-    print(batch.Text)
-    print(batch.Label)
+    # batch = next(iter(val_dl))
+    # print(batch.Text)
+    # print(batch.Label)
 
-
-if __name__ == '__main__':
-    main()
+    return train_dl, val_dl, test_dl, TEXT
