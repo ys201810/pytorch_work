@@ -18,9 +18,10 @@ def get_IMDb_Dataloader_and_text(max_length=256, batch_size=24):
                                 eos_token='<eos>')  # 文章の最後に<eos>という文字列をセット
     LABEL = torchtext.data.Field(sequential=False, use_vocab=False)
 
-    data_path = os.path.join('/Users', 'shirai1', 'work', 'pytorch_work', 'pytorch_advanced', '7_nlp_sentiment_transformer', 'data')
+    # data_path = os.path.join('/Users', 'shirai1', 'work', 'pytorch_work', 'pytorch_advanced', '7_nlp_sentiment_transformer', 'data')
+    data_path = os.path.join('/home', 'yusuke', 'work', 'pytorch_work', 'nlp', 'sentiment_analysis', 'data')
     train_val_ds, test_ds = torchtext.data.TabularDataset.splits(
-        path=os.path.join(data_path, 'aclImdb'), train='IMDb_train.tsv', test='IMDb_test.tsv', format='tsv',
+        path=data_path, train='IMDb_train.tsv', test='IMDb_test.tsv', format='tsv',
         fields=[('Text', TEXT), ('Label', LABEL)]
     )
 
