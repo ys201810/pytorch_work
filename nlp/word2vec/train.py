@@ -23,7 +23,7 @@ def text_preprocess(text):
     delete_charactors = ['\r', '\n', ' ', '　', '"', '#', '$', '%', '&', ',', "'", '\(', '\)', '\*', '\+', ',', '-',
                          '\.', '/', ':', ';', '<', '=', '>', '\?', '@', '\[', '\]', '^', '_', '`', '{', '|', '}', '~', '!',
                          '！', '＃', '＄', '％', '＆', '＼', '’', '（', '）', '＊', '×', '＋', '−', '：', '；', '＜', '＝',
-                         '＞', '？', '＠', '「', '」', '＾', '＿', '｀', '『', '』', '【', '】', '｜', '〜']
+                         '＞', '？', '＠', '「', '」', '＾', '＿', '｀', '『', '』', '【', '】', '｜', '〜', '■️']
     for character in delete_charactors:
         text = re.sub(character, '', text)
 
@@ -58,11 +58,14 @@ def main():
     data_root = os.path.join('/Users', 'shirai1', 'work', 'lstm_work', 'nlp_pytorch', 'classification', 'data', 'text')
     text_files = glob.glob(os.path.join(data_root, 'it-life-hack', 'it-life-hack-*.txt'))
 
+    train_word_list = []
+
     for i, text_file in enumerate(text_files):
         print(text_file)
         text_list = make_sentence_list(text_file)
         print(text_list)
-
+        train_word_list.append(text_list)
+        print(train_word_list)
         if i == 1:
             exit(1)
 
