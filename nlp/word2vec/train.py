@@ -3,6 +3,8 @@ import re
 import os
 import glob
 import MeCab
+from gensim.models import word2vec
+from torchtext.vocab import Vectors
 
 
 def wakati_mecab(text, mecab):
@@ -45,9 +47,6 @@ def make_sentence_list(text_file):
             if not replaced_text:
                 continue
 
-            print('整形前:{}'.format(line))
-            print('整形後:{}'.format(replaced_text))
-
             noun_list = wakati_mecab(replaced_text, mecab)
             text_list = text_list + noun_list
 
@@ -61,13 +60,30 @@ def main():
     train_word_list = []
 
     for i, text_file in enumerate(text_files):
-        print(text_file)
         text_list = make_sentence_list(text_file)
-        print(text_list)
         train_word_list.append(text_list)
-        print(train_word_list)
-        if i == 1:
-            exit(1)
+
+    if not os.path.exists('it_life_hach.vec'):
+        model = word2vec.Word2Vec(train_word_list, sg=1, size=200, min_count=5, window=5, iter=10)
+        model.save("it_life_hach.vec")
+    else:
+        model = word2vec.Word2Vec.load('it_life_hach.vec')
+
+    print(train_word_list)
+
+    print(model.wv.index2word)
+
+    # w2v = {w: vec for w, vec in zip(model.index2word, model.syn0)}
+    print(model.most_similar(positive='PC', topn=10))
+    print(model.most_similar(positive='USB', topn=10))
+    print(model.most_similar(positive='自作', topn=10))
+    print(model.most_similar(positive='動画', topn=10))
+    print(model.most_similar(positive='ドワンゴ', topn=10))
+    print(model.most_similar(positive='ゲーム', topn=10))
+    print(model.most_similar(positive='価格', topn=10))
+    print(model.most_similar(negative=['価格'], topn=10))
+    print(model.most_similar(positive=['YouTube', 'niconico'], negative=['再生'], topn=10))
+
 
 if __name__ == '__main__':
     main()
