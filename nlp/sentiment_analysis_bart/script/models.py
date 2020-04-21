@@ -1,4 +1,5 @@
 # coding=utf-8
+import os
 import math
 import torch
 from torch import nn
@@ -268,14 +269,14 @@ class BertPooler(nn.Module):
         first_token_tensor = hidden_status[:, 0]
 
         pooled_output = self.dense(first_token_tensor)
-        pooled_output = self.activation(first_token_tensor)
+        pooled_output = self.activation(pooled_output)
 
         return pooled_output
 
 
-class BertMoel(nn.Module):
+class BertModel(nn.Module):
     def __init__(self, config):
-        super(BertMoel, self).__init__()
+        super(BertModel, self).__init__()
 
         self.embeddings = BertEmbeddings(config)
         self.encoder = BertEncoder(config)
@@ -332,35 +333,13 @@ def main():
     token_type_ids = torch.LongTensor([[0, 0, 1, 1, 1], [0, 1, 1, 1, 1]])
     print('入力した文章IDのテンソルサイズ:{}'.format(token_type_ids.shape))
 
-    net = BertMoel(config)
+    net = BertModel(config)
 
     encoded_layers, pooled_output, attention_probs = net(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=False, attention_show_flg=True)
 
     print('encoded_layersのテンソルサイズ:{}'.format(encoded_layers.shape))
     print('pooled_outputのテンソルサイズ:{}'.format(pooled_output.shape))
     print('attention_probs_layersのテンソルサイズ:{}'.format(attention_probs.shape))
-
-    """
-    embeddings = BertEmbeddings(config)
-    encoder = BertEncoder(config)
-    pooler = BertPooler(config)
-
-    # maskのpadding箇所を-の大きい数字(softmaxで0が出力されるように)
-    extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
-    extended_attention_mask = extended_attention_mask.to(dtype=torch.float32)
-    extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
-    print('拡張したマスクのテンソルサイズ:{}'.format(extended_attention_mask.shape))
-
-    # サンプルで処理
-    out1 = embeddings(input_ids, token_type_ids)
-    print('BertEmbeddingsの出力サイズ:{}'.format(out1.shape))
-
-    out2 = encoder(out1, extended_attention_mask)
-    print('BertEncoderの最終層の出力サイズ:{}'.format(out2[0].shape))
-
-    out3 = pooler(out2[-1])  # output_all_encoded_layers=Trueなので最後の出力を利用
-    print('BertEmbeddingsの出力サイズ:{}'.format(out3.shape))
-    """
 
 if __name__ == '__main__':
     main()
