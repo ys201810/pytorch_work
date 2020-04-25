@@ -21,6 +21,66 @@ config = {
 }
 config = AttrDict(config)
 
+
+def set_learned_params(net, weights_path="./weights/pytorch_model.bin"):
+    # セットするパラメータを読み込む
+    loaded_state_dict = torch.load(weights_path)
+
+    # 現在のネットワークモデルのパラメータ名
+    net.eval()
+    param_names = []  # パラメータの名前を格納していく
+
+    for name, param in net.named_parameters():
+        param_names.append(name)
+
+    # 現在のネットワークの情報をコピーして新たなstate_dictを作成
+    new_state_dict = net.state_dict().copy()
+
+    # 新たなstate_dictに学習済みの値を代入
+    for index, (key_name, value) in enumerate(loaded_state_dict.items()):
+        name = param_names[index]  # 現在のネットワークでのパラメータ名を取得
+        new_state_dict[name] = value  # 値を入れる
+        print(str(key_name)+"→"+str(name))  # 何から何に入ったかを表示
+
+        # 現在のネットワークのパラメータを全部ロードしたら終える
+        if (index+1 - len(param_names)) >= 0:
+            break
+
+    # 新たなstate_dictを構築したBERTモデルに与える
+    net.load_state_dict(new_state_dict)
+
+    return net
+
+
+class BertForIMBd(nn.Module):
+    def __init__(self, net):
+        super(BertForIMBd, self).__init__()
+
+        self.bert = net
+
+        # 最終層でポジかネガかを判別するための全結合層
+        self.cls = nn.Linear(in_features=768, out_features=2)
+
+        # 重みの初期化
+        nn.init.normal_(self.cls.weight, std=0.02)
+        nn.init.normal_(self.cls.bias, 0)
+
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, output_all_encoded_layers=False, attention_show_flg=False):
+        if attention_show_flg:
+            encoded_layers, pooled_output, attention_probs = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers, attention_show_flg)
+        else:
+            encoded_layers, pooled_output = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers, attention_show_flg)
+
+        vec_0 = encoded_layers[:, 0, :]  # [CLS]の文字のベクトルだけを取り出す
+        vec_0 = vec_0.view(-1, 768)  # sizeをバッチサイズ, hidden_sizeに変換
+        out = self.cls(vec_0)
+
+        if attention_show_flg:
+            return out, attention_probs
+        else:
+            return out
+
+
 class BertLayerNorm(nn.Module):
     def __init__(self, hidden_size, eps=1e-12):
         super(BertLayerNorm, self).__init__()

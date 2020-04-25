@@ -8,6 +8,7 @@ from nlp.sentiment_analysis_bart.script.models import BertModel
 from nlp.sentiment_analysis_bart.script.tokenizer import BasicTokenizer, WordpieceTokenizer
 import torch.nn.functional as F
 
+
 class BertTokenizer(object):
     """ BERT用のTokenizer """
     def __init__(self, vocab_file, do_lower_case):
